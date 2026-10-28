@@ -1,0 +1,12 @@
+import bcrypt from "bcryptjs";
+
+// RNF-01: bcrypt con factor de costo >= 12.
+export const BCRYPT_COST = 12;
+
+export function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, BCRYPT_COST);
+}
+
+export function verifyPassword(password: string, hash: string): Promise<boolean> {
+  return bcrypt.compare(password, hash);
+}

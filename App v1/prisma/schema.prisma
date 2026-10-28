@@ -1,0 +1,59 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum GuestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+model User {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  passwordHash   String
+  // Se incrementa en cada logout para invalidar todos los JWT emitidos antes (RF-39)
+  sessionVersion Int      @default(0)
+  createdAt      DateTime @default(now())
+
+  events Event[]
+}
+
+model Event {
+  id          String    @id @default(cuid())
+  title       String
+  // Instante absoluto (UTC). La zona America/Argentina/Buenos_Aires se aplica al calcular y mostrar (RNF-04)
+  startsAt    DateTime
+  location    String
+  description String
+  canceledAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  organizerId String
+  organizer   User    @relation(fields: [organizerId], references: [id])
+  guests      Guest[]
+
+  @@index([organizerId])
+}
+
+model Guest {
+  id          String      @id @default(cuid())
+  // Siempre normalizado a minúsculas por la aplicación
+  email       String
+  status      GuestStatus @default(PENDING)
+  // 32 bytes aleatorios en base64url (RNF-03); es el enlace único de respuesta
+  token       String      @unique
+  respondedAt DateTime?
+  createdAt   DateTime    @default(now())
+
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, email])
+  @@index([email])
+}
